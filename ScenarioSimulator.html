@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scenario Simulator - AdvanceWiki</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="p-4 bg-gray-50 h-screen flex flex-col">
+
+    <div class="container mx-auto max-w-6xl flex-grow flex flex-col h-full">
+        <header class="mb-4 flex items-center justify-between shrink-0">
+            <h1 class="text-2xl font-bold text-gray-800 flex items-center">
+                <i data-lucide="play-circle" class="w-8 h-8 mr-2 text-green-600"></i>
+                Scenario Simulator
+            </h1>
+            <a href="index.html" class="text-blue-600 hover:underline text-sm flex items-center">
+                <i data-lucide="home" class="w-4 h-4 mr-1"></i>Home
+            </a>
+        </header>
+
+        <main class="flex-grow flex flex-col md:flex-row gap-4 overflow-hidden h-full pb-4">
+
+            <!-- Left: Input Area -->
+            <div class="w-full md:w-1/3 flex flex-col card p-4 h-full">
+                <h2 class="font-bold text-gray-700 mb-2 flex items-center">
+                    <i data-lucide="file-input" class="icon mr-2"></i>シナリオ入力
+                </h2>
+                <textarea id="scenarioInput"
+                    class="flex-grow w-full p-3 border rounded-md font-mono text-sm resize-none focus:ring-2 focus:ring-blue-500 outline-none mb-2"
+                    placeholder="ここにシナリオテキストを貼り付けてください..."></textarea>
+                <div class="flex justify-end">
+                    <button id="loadButton"
+                        class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition flex items-center">
+                        <i data-lucide="refresh-cw" class="icon mr-1"></i>読み込み・リセット
+                    </button>
+                </div>
+            </div>
+
+            <!-- Center: Game Screen View -->
+            <div class="w-full md:w-1/3 flex flex-col gap-4 h-full overflow-hidden">
+                <!-- Game Screen Container -->
+                <div id="gameScreen"
+                    class="card relative flex-grow bg-black overflow-hidden flex flex-col justify-end min-h-[300px] shadow-xl border-4 border-gray-800">
+
+                    <!-- Background Placeholder -->
+                    <div id="gameBackground"
+                        class="absolute inset-0 bg-gray-900 transition-colors duration-500 flex items-center justify-center text-gray-700 text-6xl font-bold select-none opacity-50">
+                        BG
+                    </div>
+
+                    <!-- Message Window -->
+                    <div
+                        class="relative z-10 mx-4 mb-4 bg-black bg-opacity-80 border border-gray-600 rounded-md p-4 min-h-[120px] text-white font-sans shadow-lg">
+                        <!-- Name Label -->
+                        <div id="nameLabel"
+                            class="absolute -top-3 left-4 bg-yellow-600 text-white text-xs font-bold px-3 py-1 rounded shadow hidden">
+                        </div>
+
+                        <!-- Main Text -->
+                        <div id="messageText" class="text-lg leading-relaxed tracking-wide">
+                            <span class="text-gray-400 text-sm animate-pulse">Waiting for start...</span>
+                        </div>
+
+                        <!-- Next Cursor -->
+                        <div class="absolute bottom-2 right-2 animate-bounce text-yellow-400">
+                            <i data-lucide="chevron-down" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="card p-3 flex justify-center gap-2 shrink-0 bg-gray-800 border-gray-700">
+                    <button id="prevBtn"
+                        class="bg-gray-700 text-gray-300 px-4 py-2 rounded hover:bg-gray-600 transition flex items-center"
+                        disabled>
+                        <i data-lucide="skip-back" class="icon"></i>
+                    </button>
+                    <button id="nextBtn"
+                        class="bg-blue-600 text-white px-8 py-2 rounded shadow hover:bg-blue-500 transition font-bold flex items-center">
+                        Next <i data-lucide="step-forward" class="icon ml-1"></i>
+                    </button>
+                    <button id="autoBtn"
+                        class="bg-gray-700 text-gray-300 px-4 py-2 rounded hover:bg-gray-600 transition flex items-center">
+                        Auto <i data-lucide="play" class="icon ml-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right: Debug / Variables -->
+            <div class="w-full md:w-1/3 flex flex-col card p-4 h-full bg-slate-50">
+                <h2 class="font-bold text-gray-700 mb-2 flex items-center">
+                    <i data-lucide="activity" class="icon mr-2"></i>変数・ステータス
+                </h2>
+
+                <div class="overflow-y-auto flex-grow border bg-white rounded">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-100 text-gray-600 border-b">
+                            <tr>
+                                <th class="py-2 px-3 text-left">変数名</th>
+                                <th class="py-2 px-3 text-right">値</th>
+                            </tr>
+                        </thead>
+                        <tbody id="variableTableBody">
+                            <tr>
+                                <td colspan="2" class="text-center text-gray-400 py-4">変数なし</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-4 border-t pt-2">
+                    <h3 class="font-bold text-gray-700 text-sm mb-1">システムログ</h3>
+                    <div id="systemLog"
+                        class="h-24 overflow-y-auto bg-gray-100 p-2 text-xs font-mono text-gray-600 rounded border">
+                        <div>System ready.</div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="js/simulator.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADVゲーム シナリオ構文仕様書</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="p-8">
+
+    <div class="container mx-auto max-w-4xl">
+        <header class="mb-8 text-center">
+            <h1 class="text-4xl font-bold mb-4 text-gray-800">ADVゲーム シナリオ構文仕様書</h1>
+            <p class="text-gray-600">Googleドキュメント（またはテキストエディタ）で執筆されたシナリオをUnityで読み込み、実行するための記述ルール定義。</p>
+        </header>
+
+        <!-- 1. 基本ルール -->
+        <section class="card mb-8 p-6">
+            <h2 class="text-2xl mb-4 border-b pb-2">1. 基本ルール</h2>
+            <div class="space-y-4">
+                <div>
+                    <h3 class="font-bold mb-2 flex items-center"><i data-lucide="file-text" class="icon mr-2"></i>ファイル形式と保存</h3>
+                    <ul class="list-disc list-inside text-gray-700 ml-4 space-y-1">
+                        <li><span class="font-semibold">文字コード:</span> UTF-8</li>
+                        <li><span class="font-semibold">改行コード:</span> LF または CRLF（Unity側で自動統一）</li>
+                        <li><span class="font-semibold">保存場所:</span> <code class="bg-gray-200 px-1 rounded">Assets/Resources/Scenario</code></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold mb-2 flex items-center"><i data-lucide="layers" class="icon mr-2"></i>読み込み順序</h3>
+                    <p class="text-gray-700 ml-4">ファイル名順に結合されて1つのシナリオとして扱われます。</p>
+                    <div class="ml-4 mt-2">
+                        <span class="tag tag-blue">推奨ファイル名</span> 01_prologue.txt, 02_chapter1.txt ...
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <span class="badge highlight text-sm"><i data-lucide="alert-circle" class="icon inline-block align-middle w-4 h-4 mr-1"></i>特記事項</span>
+                    <p class="text-gray-700 mt-2 ml-4">
+                        各テキストファイルの <strong>1行目は「ファイル名（識別用）」</strong> として扱われ、ゲーム内では無視されます。<br>
+                        シナリオ本文は2行目から記述してください。
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. テキスト表示 -->
+        <section class="card mb-8 p-6">
+            <h2 class="text-2xl mb-4 border-b pb-2">2. テキスト表示</h2>
+            
+            <div class="mb-6">
+                <h3 class="text-xl font-semibold mb-2">会話（セリフ）</h3>
+                <p class="text-gray-700 mb-2">カギカッコ 「 または 『 を含む行は、自動的にセリフとして処理されます。</p>
+                
+                <h4 class="font-bold text-sm text-gray-600 mt-4">名前あり</h4>
+                <div class="code-container">
+                    <button class="copy-button"><i data-lucide="copy" class="icon"></i></button>
+                    <pre><code>太郎「こんにちは」</code></pre>
+                </div>
+
+                <h4 class="font-bold text-sm text-gray-600 mt-4">名前省略（話者継続）</h4>
+                <div class="code-container">
+                    <button class="copy-button"><i data-lucide="copy" class="icon"></i></button>
+                    <pre><code>「昨日はよく眠れた？」</code></pre>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <h3 class="text-xl font-semibold mb-2">ト書き（演出・動作）</h3>
+                <p class="text-gray-700 mb-2">丸カッコ （ または ( で始まる行。名前欄非表示、カッコの中身だけ表示。</p>
+                <div class="code-container">
+                    <button class="copy-button"><i data-lucide="copy" class="icon"></i></button>
+                    <pre><code>（激しい音が鳴り響く）</code></pre>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-xl font-semibold mb-2">地の文（ナレーション）</h3>
+                <p class="text-gray-700 mb-2">上記以外。名前欄非表示。</p>
+                <div class="code-container">
+                    <button class="copy-button"><i data-lucide="copy" class="icon"></i></button>
+                    <pre><code>雨が降り出した。
+辺りは静寂に包まれている。</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. 演出コマンド -->
+        <section class="card mb-8 p-6">
+            <h2 class="text-2xl mb-4 border-b pb-2">3. 演出コマンド</h2>
+            <p class="mb-4 text-gray-600">行頭の記号で背景変更やサウンド再生（全角・半角可）。</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="font-bold text-lg mb-2 flex items-center"><i data-lucide="image" class="icon mr-2"></i>背景変更</h3>
+                    <p class="text-sm text-gray-600 mb-2">行頭 <span class="tag tag-gray">○</span> or <span class="tag tag-gray">@</span></p>
+                    <div class="code-container">
+                        <button class="copy-button"><i data-lucide="copy" class="icon"></i></button>
+                        <pre><code>○教室
+@夕暮れの公園</code></pre>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-lg mb-2 flex items-center"><i data-lucide="music" class="icon mr-2"></i>サウンド再生</h3>
+                    <p class="text-sm text-gray-600 mb-2">行頭 <span class="tag tag-gray">♪</span></p>
+                    <div class="code-container">
+                        <button class="copy-button"><i data-lucide="copy" class="icon"></i></button>
+                        <pre><code>♪BGM：日常のテーマ
+♪BGM：停止
+♪SE：爆発音</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. 分岐と進行制御 -->
+        <section class="card mb-8 p-6">
+            <h2 class="text-2xl mb-4 border-b pb-2">4. 分岐と進行制御</h2>
+            
+            <div class="space-y-6">
+                <div>
+                    <h3 class="font-bold text-lg mb-2">ラベル（ジャンプ先）</h3>
+                    <p class="text-gray-700 mb-2">行頭 <span class="tag tag-gray">*</span>。Googleドキュメント「見出し1」で自動付与。</p>
+                    <div class="code-container">
+                        <button class="copy-button"><i data-lucide="copy" class="icon"></i></button>
+                        <pre><code>*route_A</code></pre>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-lg mb-2">選択肢</h3>
+                    <p class="text-gray-700 mb-2"><span class="tag tag-gray">★</span> 文言、直下に <span class="tag tag-gray">→</span> 飛び先。</p>
+                    <div class="code-container">
+                        <button class="copy-button"><i data-lucide="copy" class="icon"></i></button>
+                        <pre><code>★右の道を行く
+→*route_right
+
+★左の道を行く
+→*route_left</code></pre>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-lg mb-2">強制ジャンプ</h3>
+                    <div class="code-container">
+                        <button class="copy-button"><i data-lucide="copy" class="icon"></i></button>
+                        <pre><code>goto *common_route</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. その他 & 6. パラメータ -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- 5. その他 -->
+            <section class="card p-6">
+                <h2 class="text-2xl mb-4 border-b pb-2">5. その他</h2>
+                <h3 class="font-bold text-lg mb-2">コメントアウト</h3>
+                <p class="text-gray-700 mb-2">行頭 <span class="tag tag-gray">//</span> で無視。</p>
+                <div class="code-container">
+                    <button class="copy-button"><i data-lucide="copy" class="icon"></i></button>
+                    <pre><code>// ここから第2章のデータ</code></pre>
+                </div>
+            </section>
+
+            <!-- 6. パラメータ -->
+            <section class="card p-6">
+                <h2 class="text-2xl mb-4 border-b pb-2">6. パラメータ操作</h2>
+                <p class="text-sm text-gray-600 mb-2">行頭 <span class="tag tag-gray">#</span>。内部計算のみ。</p>
+                
+                <table class="w-full text-sm text-left text-gray-600 mb-4">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-3 py-2">演算子</th>
+                            <th scope="col" class="px-3 py-2">機能</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="bg-white border-b">
+                            <td class="px-3 py-2 font-mono">+</td>
+                            <td class="px-3 py-2">加算 (<code>#好感度 + 1</code>)</td>
+                        </tr>
+                        <tr class="bg-white border-b">
+                            <td class="px-3 py-2 font-mono">-</td>
+                            <td class="px-3 py-2">減算 (<code>#HP - 10</code>)</td>
+                        </tr>
+                        <tr class="bg-white">
+                            <td class="px-3 py-2 font-mono">=</td>
+                            <td class="px-3 py-2">代入 (<code>#Flag = 1</code>)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+
+        <!-- 記述サンプル (Accordion) -->
+        <section class="card mb-12">
+            <button class="accordion-header">
+                <h2 class="text-xl font-bold flex items-center">
+                    <i data-lucide="code" class="icon mr-2 text-blue-600"></i>記述サンプル
+                </h2>
+                <i data-lucide="chevron-down" class="toggle-icon icon text-gray-400"></i>
+            </button>
+            <div class="accordion-content hidden">
+                <p class="mb-4 text-gray-600 text-sm">完全なシナリオファイルの例です。コピーしてテスト用に使用してください。</p>
+                <div class="code-container">
+                    <button class="copy-button"><i data-lucide="copy" class="icon"></i></button>
+                    <pre><code>Common_Route_File  <-- 1行目は無視される
+
+// 冒頭シーン
+○教室
+♪BGM：学園
+
+[先生]
+「席につけー。転校生を紹介する」
+
+（ドアが開く音）
+♪SE：ドア開閉
+
+[転校生]
+「……はじめまして」
+
+主人公「（可愛い子だな……）」
+
+★話しかける
+→*talk_event
+
+★無視する
+→*ignore_event
+
+// --------------------
+*talk_event
+// --------------------
+// ▼▼▼ パラメータ操作 ▼▼▼
+#好感度 + 1
+// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+[主人公]
+「よろしくね」
+[転校生]
+「うん、よろしく」
+goto *next_scene
+
+// --------------------
+*ignore_event
+// --------------------
+// ▼▼▼ パラメータ操作 ▼▼▼
+#好感度 - 1
+// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+[主人公]
+「……」
+（気まずい沈黙が流れた）
+goto *next_scene
+
+// --------------------
+*next_scene
+// --------------------
+○廊下
+（つづく）</code></pre>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Script -->
+    <script src="js/script.js"></script>
+</body>
+</html>

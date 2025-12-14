@@ -1,0 +1,132 @@
+/* 2.1. 全体・基本スタイル */
+body {
+    font-family: 'Inter', sans-serif; /* Recommended modern font, though not strictly specified, good for readability */
+    background-color: #f3f4f6; /* Thin gray (Tailwind gray-100 equivalent) */
+    color: #1f2937; /* Dark gray text (Tailwind gray-800 equivalent) */
+}
+
+h1, h2, h3 {
+    font-weight: 700;
+}
+
+/* 2.2. コンポーネントスタイル */
+.card {
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem; /* 8px */
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    transform: translateY(-4px);
+}
+
+.tag {
+    display: inline-block;
+    padding: 0.125rem 0.5rem; /* py-0.5 px-2 */
+    border-radius: 9999px; /* rounded-full */
+    font-weight: 600;
+    font-size: 0.75rem; /* text-xs */
+    margin-right: 0.25rem;
+}
+
+.tag-gray {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.tag-blue {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.tag-green {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.status-attacker {
+    color: #ef4444; /* red-500 */
+}
+
+.highlight {
+    background-color: #fef08a; /* yellow-200 */
+    padding: 0 0.25rem;
+    border-radius: 0.25rem;
+    font-weight: 700;
+    color: #854d0e; /* yellow-800 mostly for readability */
+}
+
+.icon {
+    width: 20px;
+    height: 20px;
+    stroke-width: 2px;
+}
+
+/* Code Container & Copy Button */
+.code-container {
+    position: relative;
+    background-color: #1f2937; /* dark bg for code */
+    color: #f9fafb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+    overflow-x: auto;
+}
+
+.copy-button {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.25rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 0.25rem;
+    color: white;
+    opacity: 0;
+    transition: opacity 0.2s ease, background-color 0.2s;
+    cursor: pointer;
+    border: none;
+}
+
+.copy-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.code-container:hover .copy-button {
+    opacity: 1;
+}
+
+/* Accordion Specifics */
+.accordion-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    text-align: left;
+    background-color: white;
+    border: none;
+    cursor: pointer;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background-color 0.2s;
+}
+
+.accordion-header:hover {
+    background-color: #f9fafb;
+}
+
+.toggle-icon {
+    transition: transform 0.3s ease;
+}
+
+.accordion-content {
+    /* Hidden logic handled by Tailwind 'hidden' utility or inline style, but transition needs block/none or max-height */
+    /* Spec says simple toggle of 'hidden' class */
+    padding: 1rem;
+    background-color: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+}
