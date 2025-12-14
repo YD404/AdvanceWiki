@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scenario → Flowchart</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Custom CSS (for fonts and base styles) -->
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* Mermaid-specific override if needed, though htmlLabels:true usually handles it */
+    /* Mermaid-specific override if needed, though htmlLabels:true usually handles it */
+    .mermaid {
+      /* height: 100%; REMOVED for Pan/Zoom */
+    }
+
+    .highlight>rect,
+    .highlight>polygon,
+    .highlight>circle,
+    .highlight>path {
+      stroke: #f59e0b !important;
+      /* amber-500 */
+      stroke-width: 4px !important;
+      filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.5));
+    }
+
+    .dimmed {
+      opacity: 0.2;
+      transition: opacity 0.3s;
+    }
+
+    #mermaidView {
+      transform-origin: 0 0;
+      cursor: grab;
+    }
+
+    #mermaidView:active {
+      cursor: grabbing;
+    }
+
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+      }
+
+      70% {
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+      }
+    }
+
+    .highlight-error>rect,
+    .highlight-error>polygon {
+      animation: pulse 2s infinite;
+    }
+  </style>
+</head>
+
+<body class="flex flex-col h-screen overflow-hidden bg-gray-100 text-gray-800 font-sans">
+
+  <!-- Header -->
+  <header class="h-14 bg-white border-b border-gray-200 flex items-center px-4 gap-4 shadow-sm z-10 shrink-0">
+    <h1 class="text-xl font-bold flex items-center text-gray-700">
+      <i data-lucide="git-graph" class="w-6 h-6 mr-2 text-blue-600"></i>
+      Scenario to Flowchart
+    </h1>
+    <div class="flex-1"></div>
+    <div class="text-xs text-gray-500 hidden sm:block">
+      対応：<code>*label</code> / <code>★選択肢→*label</code> / <code>goto *label</code>
+    </div>
+
+    <div class="flex bg-gray-100 rounded p-1 gap-1">
+      <button id="btnSimple"
+        class="px-3 py-1 text-xs font-bold text-gray-500 rounded hover:bg-white hover:text-gray-800 transition-colors"
+        title="選択肢のテキストを省略します">
+        Simple
+      </button>
+      <button id="btnDetail" class="px-3 py-1 text-xs font-bold text-white bg-blue-500 rounded shadow-sm"
+        title="全てのテキストを表示します">
+        Detail
+      </button>
+    </div>
+
+    <div class="flex gap-2">
+      <a href="index.html"
+        class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+        <span>戻る</span>
+      </a>
+      <button id="btnSample"
+        class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors">
+        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+        <span class="hidden sm:inline">サンプル復元</span>
+      </button>
+      <button id="btnRender"
+        class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors shadow-sm">
+        <i data-lucide="play" class="w-4 h-4"></i>
+        <span>生成実行</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 flex overflow-hidden">
+
+    <!-- Editor Panel (Left) -->
+    <div class="w-1/3 min-w-[300px] border-r border-gray-200 bg-white flex flex-col">
+      <div
+        class="px-4 py-2 bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider flex justify-between items-center">
+        Editor
+        <span class="text-[10px] bg-gray-200 px-1.5 py-0.5 rounded text-gray-600">Scenario Text</span>
+      </div>
+      <textarea id="src"
+        class="flex-1 p-4 w-full h-full resize-none focus:outline-none font-mono text-sm leading-relaxed text-gray-800"
+        spellcheck="false" placeholder="// ここにシナリオを入力..."></textarea>
+    </div>
+
+    <!-- Preview Panel (Right) -->
+    <div class="flex-1 flex flex-col bg-gray-100 relative">
+      <!-- Mermaid View -->
+      <div id="chartContainer"
+        class="flex-1 overflow-hidden relative bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] cursor-crosshair">
+        <div class="mermaid absolute top-0 left-0 origin-top-left" id="mermaidView"></div>
+      </div>
+
+      <!-- Bottom Info Panel -->
+      <div class="h-48 border-t border-gray-200 bg-white flex flex-col shrink-0 transition-height duration-300">
+        <div class="flex border-b border-gray-100">
+          <button
+            class="px-4 py-2 text-xs font-bold text-gray-600 border-b-2 border-blue-500 bg-blue-50 hover:bg-gray-50"
+            onclick="document.getElementById('nodeBodyPanel').style.display = 'block'; document.getElementById('mermaidTextPanel').style.display = 'none';">
+            Node Content
+          </button>
+          <button class="px-4 py-2 text-xs font-bold text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+            onclick="document.getElementById('mermaidTextPanel').style.display = 'block'; document.getElementById('nodeBodyPanel').style.display = 'none';">
+            Source (Debug)
+          </button>
+        </div>
+
+        <div class="flex-1 relative overflow-auto">
+          <div id="nodeBodyPanel" class="absolute inset-0 p-4">
+            <pre id="nodeBody"
+              class="font-mono text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">（ノードをクリックするとここに本文が出ます）</pre>
+          </div>
+          <div id="mermaidTextPanel" class="absolute inset-0 p-4 hidden">
+            <div class="text-xs text-gray-400 mb-2">Mermaid Source Code:</div>
+            <pre id="mermaidText" class="font-mono text-xs text-gray-600 whitespace-pre-wrap"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="fixed bottom-2 right-4 text-[10px] text-gray-400 opacity-50 pointer-events-none select-none font-mono">
+    made by noke
+  </div>
+
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+
+    // Initialize Lucide icons
+    lucide.createIcons();
+
+    mermaid.initialize({
+      startOnLoad: false,
+      flowchart: {
+        useMaxWidth: false,
+        htmlLabels: true,
+        curve: 'monotoneY',
+        nodeSpacing: 50,
+        rankSpacing: 50
+      },
+      theme: 'base',
+      themeVariables: {
+        primaryColor: '#eff6ff', // blue-50
+        primaryTextColor: '#1e40af', // blue-800
+        primaryBorderColor: '#60a5fa', // blue-400
+        lineColor: '#94a3b8', // slate-400
+        secondaryColor: '#fef3c7', // amber-100
+        tertiaryColor: '#fff'
+      }
+    });
+
+    const $src = document.getElementById("src");
+    const $btnRender = document.getElementById("btnRender");
+    const $btnSample = document.getElementById("btnSample");
+    const $mText = document.getElementById("mermaidText");
+    const $mView = document.getElementById("mermaidView");
+    const $nodeBody = document.getElementById("nodeBody");
+
+    const SAMPLE = `// ここにシナリオを貼り付けてください
+
+// 冒頭シーン
+○学食
+♪BGM：昼下がり
+
+主人公「（席、空いてるかな……）」
+（トレーを持って歩く音）
+♪SE：食器の音
+
+菊原「……君、迷子？」
+主人公「えっ」
+菊原「この時間の学食は戦場だ。動線を読まないと、席も空気も取られる」
+
+主人公「（なにそれ。怖いのに、言い方がやたら綺麗だ……）」
+
+菊原「ここ、座る？」
+主人公「いいの？」
+菊原「いいとも。僕は“素材”を観察してただけだから」
+
+主人公「（素材って、私のこと？）」
+
+菊原「君、映像学科？」
+主人公「違う。けど……映像はちょっと興味ある」
+菊原「興味は才能の入口。……で、君は何が撮りたい？」
+
+主人公「えっと……まだ分かんない」
+菊原「なら、今夜わかるようにしよう」
+主人公「今夜！？」
+菊原「上映会。旧視聴覚棟の小ホール。知ってる？」
+
+★行ってみる
+→*go_screening
+
+★断る（予定があるフリ）
+→*decline
+
+// --------------------
+*go_screening
+// --------------------
+// ▼▼▼ パラメータ操作 ▼▼▼
+#好感度 + 1
+// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+主人公「……行く。ちょっと怖いけど」
+
+菊原「怖さは正常な感度だ。鈍いよりずっといい」
+（紙を滑らせる音）
+♪SE：紙を渡す
+
+菊原「これ、座席表。空調の死角と、スクリーンの反射角もメモしてある」
+主人公「そこまで……？」
+菊原「“観る”っていうのは、世界を設計することだから」
+
+主人公「（この人、知識量が異常なのに、押しつけがましくない……むしろ、誘導がうまい）」
+
+菊原「君の名前、まだ聞いてなかった」
+主人公「あっ……」
+菊原「いい。今夜、暗闇で聞く。そこに意味がある」
+
+goto *next_scene
+
+// --------------------
+*decline
+// --------------------
+// ▼▼▼ パラメータ操作 ▼▼▼
+#好感度 - 1
+// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+主人公「ごめん、今日はちょっと……」
+
+菊原「嘘が下手だね。……嫌いじゃないけど」
+主人公「え、嘘って……」
+菊原「行かない理由を、君は“自分”に説明できてない。だから声が揺れる」
+
+主人公「（なんでそんなの分かるの……）」
+
+菊原「大丈夫。逃げたカットも、編集で意味になる」
+主人公「……意味？」
+菊原「次に会ったとき、君が“選び直す”ための余白だ」
+
+（菊原が立ち上がる）
+♪SE：椅子を引く
+
+菊原「席、譲るよ。戦場では、撤退も技術だから」
+
+goto *next_scene
+
+// --------------------
+*next_scene
+// --------------------
+○校舎裏（旧視聴覚棟の方向）
+♪BGM：夕方の風
+
+主人公「（あの方向……行くか、行かないか。たぶん、ここから物語が動く）」
+
+（遠くで扉が開く音）
+♪SE：ドア開閉
+`;
+
+    $src.value = SAMPLE;
+
+    function nodeId(label) {
+      return "N_" + label.replace(/[^a-zA-Z0-9_]/g, "_");
+    }
+
+    function firstSceneTitle(blockText) {
+      const lines = blockText.split(/\r?\n/);
+      for (const line of lines) {
+        const t = line.trim();
+        if (t.startsWith("○")) return t;
+      }
+      return null;
+    }
+
+    function parseScenario(text) {
+      const lines = text.split(/\r?\n/);
+      const blocks = new Map();
+      const edges = [];
+
+      let current = "START";
+      let buf = [];
+      let pendingChoice = null;
+
+      function flushBlock(label) {
+        const content = buf.join("\n").trimEnd();
+        if (!blocks.has(label)) blocks.set(label, { text: "", title: null });
+        const prev = blocks.get(label);
+        const merged = (prev.text ? prev.text + "\n" : "") + content;
+        blocks.set(label, {
+          text: merged.trimEnd(),
+          title: firstSceneTitle(merged) || prev.title
+        });
+        buf = [];
+      }
+
+      blocks.set("START", { text: "", title: "START" });
+
+      for (let i = 0; i < lines.length; i++) {
+        const raw = lines[i];
+        const line = raw.trim();
+
+        const mLabel = line.match(/^\*(\w[\w\-]*)$/);
+        if (mLabel) {
+          flushBlock(current);
+          current = mLabel[1];
+          if (!blocks.has(current)) blocks.set(current, { text: "", title: null });
+          continue;
+        }
+
+        const mChoice = line.match(/^★\s*(.+)$/);
+        if (mChoice) {
+          pendingChoice = mChoice[1].trim();
+          buf.push(raw);
+          continue;
+        }
+
+        const mArrow = line.match(/^→\s*\*(\w[\w\-]*)$/);
+        if (mArrow) {
+          const to = mArrow[1];
+          edges.push({ from: current, to, label: pendingChoice || "" });
+          pendingChoice = null;
+          buf.push(raw);
+          continue;
+        }
+
+        const mGoto = line.match(/^goto\s+\*(\w[\w\-]*)$/i);
+        if (mGoto) {
+          edges.push({ from: current, to: mGoto[1], label: "goto" });
+          buf.push(raw);
+          continue;
+        }
+
+        buf.push(raw);
+      }
+      flushBlock(current);
+
+      for (const [k, v] of blocks.entries()) {
+        if (!v.title) {
+          v.title = (k === "START") ? "START" : `*${k}`;
+          blocks.set(k, v);
+        }
+      }
+      return { blocks, edges };
+    }
+
+    function wrapText(text, maxLen = 20) {
+      if (!text) return "";
+      let res = "";
+      let count = 0;
+      for (let i = 0; i < text.length; i++) {
+        res += text[i];
+        count++;
+        if (count >= maxLen && i < text.length - 1) {
+          res += "<br/>";
+          count = 0;
+        }
+      }
+      return res;
+    }
+
+    function buildMermaid({ blocks, edges }) {
+      const lines = [];
+      lines.push("flowchart TD");
+
+      // Define styles
+      // Error style
+      // Error style
+      lines.push("classDef error stroke:#ef4444,stroke-width:2px,fill:#fee2e2,color:#b91c1c;");
+      // Default style override if needed (optional)
+      lines.push("classDef default fill:#fff,stroke:#cbd5e1,stroke-width:1px;");
+
+      const definedLabels = new Set(blocks.keys());
+      const referencedLabels = new Set();
+      const nodeMap = new Map();
+
+      for (const [label, info] of blocks.entries()) {
+        const id = nodeId(label);
+        nodeMap.set(label, id);
+        // Wrap title
+        const wrappedTitle = wrapText(info.title, 20);
+        const titleEsc = wrappedTitle.replace(/"/g, '\\"');
+
+        // Add data-id interaction
+        lines.push(`${id}["${titleEsc}"]`);
+        lines.push(`click ${id} "javascript:void(0)" "node-click"`);
+      }
+
+      for (const e of edges) {
+        const from = nodeId(e.from);
+        const to = nodeId(e.to);
+        const lab = (e.label || "").replace(/"/g, '\\"');
+
+        referencedLabels.add(e.to);
+
+        if (lab && renderMode.showLabels) {
+          lines.push(`${from} -- "${lab}" --> ${to}`);
+        } else {
+          lines.push(`${from} --> ${to}`);
+        }
+      }
+
+      // Check for missing labels
+      for (const ref of referencedLabels) {
+        if (!definedLabels.has(ref)) {
+          const id = nodeId(ref);
+          if (!definedLabels.has(ref)) {
+            const id = nodeId(ref);
+            lines.push(`${id}["! ${ref}"]:::error`);
+            // Add pulse class effectively via click callback logic or post-process? 
+            // Mermaid doesn't support adding raw classes easily to specific nodes beyond classDef.
+            // We will handle the pulse animation by targeting the .error class in CSS directly on the node elements.
+            // Actually, classDef applies class to the g element or rect.
+            // We can use JS to inject the animation class if needed, or just style the classDef target.
+            // For pulse, we need overflow visible usually.
+          }
+        }
+      }
+
+      return lines.join("\n");
+    }
+
+    // Pan & Zoom Logic
+    const $container = document.getElementById("chartContainer");
+    let state = { scale: 1, pX: 0, pY: 0, isDragging: false, startX: 0, startY: 0 };
+
+    function updateTransform() {
+      $mView.style.transform = `translate(${state.pX}px, ${state.pY}px) scale(${state.scale})`;
+    }
+
+    // Correct Zoom Logic (Cursor Centered)
+    $container.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const zoomStep = 0.1;
+      const oldScale = state.scale;
+      const newScale = e.deltaY > 0 ? oldScale * (1 - zoomStep) : oldScale * (1 + zoomStep);
+
+      const clampedScale = Math.max(0.1, Math.min(newScale, 5.0));
+
+      // Calculate cursor position relative to container
+      const rect = $container.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      // Calculate shift to keep mouse position stable
+      // px_new = mouseX - (mouseX - px_old) * (newScale / oldScale)
+      const ratio = clampedScale / oldScale;
+      state.pX = mouseX - (mouseX - state.pX) * ratio;
+      state.pY = mouseY - (mouseY - state.pY) * ratio;
+      state.scale = clampedScale;
+
+      updateTransform();
+    });
+
+    $container.addEventListener("mousedown", (e) => {
+      if (e.target.closest('.node')) return;
+      state.isDragging = true;
+      state.startX = e.clientX - state.pX;
+      state.startY = e.clientY - state.pY;
+      $container.style.cursor = "grabbing";
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!state.isDragging) return;
+      state.pX = e.clientX - state.startX;
+      state.pY = e.clientY - state.startY;
+      updateTransform();
+    });
+
+    window.addEventListener("mouseup", () => {
+      state.isDragging = false;
+      $container.style.cursor = "crosshair";
+    });
+
+    function wireNodeClicks(parsed) {
+      // Clear old Highlights
+      const clearHighlights = () => {
+        const svg = $mView.querySelector("svg");
+        if (!svg) return;
+        const allNodes = svg.querySelectorAll("g.node");
+        const allEdges = svg.querySelectorAll("g.edgePath");
+        allNodes.forEach(n => {
+          n.classList.remove("highlight", "dimmed");
+          n.style.opacity = "1";
+        });
+        allEdges.forEach(e => e.style.opacity = "1");
+      };
+
+      const svg = $mView.querySelector("svg");
+      if (!svg) return;
+
+      const nodes = svg.querySelectorAll("g.node");
+
+      nodes.forEach(n => {
+        n.addEventListener("click", (e) => {
+          e.stopPropagation();
+          clearHighlights();
+
+          let hitLabel = null;
+          const text = n.textContent?.trim() || "";
+
+          // Reverse lookup
+          for (const [label, info] of parsed.blocks.entries()) {
+            if (info.title === text || text.includes(info.title.substring(0, 5))) {
+              hitLabel = label; break;
+            }
+          }
+          if (!hitLabel) {
+            const domId = n.id;
+            for (const [label, info] of parsed.blocks.entries()) {
+              if (domId.includes(nodeId(label))) { hitLabel = label; break; }
+            }
+          }
+
+          if (!hitLabel) return;
+
+          const body = parsed.blocks.get(hitLabel)?.text ?? "";
+          $nodeBody.textContent = `【${hitLabel}】\n\n${body || "(本文なし)"}`;
+
+          const connected = new Set();
+          connected.add(hitLabel);
+          parsed.edges.forEach(edge => {
+            if (edge.from === hitLabel) connected.add(edge.to);
+            if (edge.to === hitLabel) connected.add(edge.from);
+          });
+
+          const allNodes = svg.querySelectorAll("g.node");
+          allNodes.forEach(an => {
+            let aLabel = null;
+            for (const [l, i] of parsed.blocks.entries()) {
+              if (an.id.includes(nodeId(l))) { aLabel = l; break; }
+            }
+            if (connected.has(aLabel)) {
+              an.classList.add("highlight");
+              an.style.opacity = "1";
+            } else {
+              an.classList.add("dimmed");
+              an.style.opacity = "0.3";
+            }
+          });
+        });
+      });
+
+      $container.addEventListener("click", (e) => {
+        if (e.target === $container || e.target === $mView) {
+          clearHighlights();
+        }
+      });
+    }
+
+    // View Control Logic
+    let renderMode = { showLabels: true };
+    const $btnSimple = document.getElementById("btnSimple");
+    const $btnDetail = document.getElementById("btnDetail");
+
+    function updateViewModeUI() {
+      if (renderMode.showLabels) {
+        $btnDetail.classList.remove("text-gray-500", "bg-gray-100");
+        $btnDetail.classList.add("text-white", "bg-blue-500", "shadow-sm");
+        $btnSimple.classList.remove("text-white", "bg-blue-500", "shadow-sm");
+        $btnSimple.classList.add("text-gray-500");
+      } else {
+        $btnSimple.classList.remove("text-gray-500", "bg-gray-100");
+        $btnSimple.classList.add("text-white", "bg-blue-500", "shadow-sm");
+        $btnDetail.classList.remove("text-white", "bg-blue-500", "shadow-sm");
+        $btnDetail.classList.add("text-gray-500");
+      }
+      render();
+    }
+
+    $btnSimple.addEventListener("click", () => { renderMode.showLabels = false; updateViewModeUI(); });
+    $btnDetail.addEventListener("click", () => { renderMode.showLabels = true; updateViewModeUI(); });
+
+    async function render() {
+      try {
+        const parsed = parseScenario($src.value);
+        const mm = buildMermaid(parsed);
+        $mText.textContent = mm;
+
+        // Clear and rebuild
+        $mView.removeAttribute('data-processed');
+        $mView.innerHTML = '';
+
+        const { svg } = await mermaid.render('mermaidSvg', mm);
+        $mView.innerHTML = svg;
+
+        // Post-process errors for animation
+        const errorNodes = $mView.querySelectorAll('.error');
+        errorNodes.forEach(el => el.classList.add('highlight-error'));
+
+        wireNodeClicks(parsed);
+      } catch (e) {
+        console.error(e);
+        $mView.innerHTML = `<div class="text-red-500 p-4">Error: ${e.message}</div>`;
+      }
+    }
+
+    $btnRender.addEventListener("click", render);
+    $btnSample.addEventListener("click", () => { $src.value = SAMPLE; });
+
+    // Initial render
+    setTimeout(render, 500); // Small delay to ensure Mermaid loads
+  </script>
+</body>
+
+</html>
