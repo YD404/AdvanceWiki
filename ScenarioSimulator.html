@@ -4,133 +4,485 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scenario Simulator - AdvanceWiki</title>
-    <!-- Tailwind CSS -->
+    <title>ADV Scenario Debugger</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+        }
+
+        .scenario-text {
+            line-height: 1.8;
+        }
+    </style>
 </head>
 
-<body class="p-4 bg-gray-50 h-screen flex flex-col">
+<body class="bg-gray-100 h-screen overflow-hidden">
+    <div id="root" class="h-full"></div>
 
-    <div class="container mx-auto max-w-6xl flex-grow flex flex-col h-full">
-        <header class="mb-4 flex items-center justify-between shrink-0">
-            <h1 class="text-2xl font-bold text-gray-800 flex items-center">
-                <i data-lucide="play-circle" class="w-8 h-8 mr-2 text-green-600"></i>
-                Scenario Simulator
-            </h1>
-            <a href="index.html" class="text-blue-600 hover:underline text-sm flex items-center">
-                <i data-lucide="home" class="w-4 h-4 mr-1"></i>Home
-            </a>
-        </header>
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
 
-        <main class="flex-grow flex flex-col md:flex-row gap-4 overflow-hidden h-full pb-4">
+        // デフォルトのサンプルシナリオ
+        const DEFAULT_SCENARIO = `FileName_01
 
-            <!-- Left: Input Area -->
-            <div class="w-full md:w-1/3 flex flex-col card p-4 h-full">
-                <h2 class="font-bold text-gray-700 mb-2 flex items-center">
-                    <i data-lucide="file-input" class="icon mr-2"></i>シナリオ入力
-                </h2>
-                <textarea id="scenarioInput"
-                    class="flex-grow w-full p-3 border rounded-md font-mono text-sm resize-none focus:ring-2 focus:ring-blue-500 outline-none mb-2"
-                    placeholder="ここにシナリオテキストを貼り付けてください..."></textarea>
-                <div class="flex justify-end">
-                    <button id="loadButton"
-                        class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition flex items-center">
-                        <i data-lucide="refresh-cw" class="icon mr-1"></i>読み込み・リセット
-                    </button>
-                </div>
-            </div>
+// ここにシナリオを貼り付けてください
+○教室
+♪BGM：日常
 
-            <!-- Center: Game Screen View -->
-            <div class="w-full md:w-1/3 flex flex-col gap-4 h-full overflow-hidden">
-                <!-- Game Screen Container -->
-                <div id="gameScreen"
-                    class="card relative flex-grow bg-black overflow-hidden flex flex-col justify-end min-h-[300px] shadow-xl border-4 border-gray-800">
+[先生]
+「転校生を紹介するぞ」
 
-                    <!-- Background Placeholder -->
-                    <div id="gameBackground"
-                        class="absolute inset-0 bg-gray-900 transition-colors duration-500 flex items-center justify-center text-gray-700 text-6xl font-bold select-none opacity-50">
-                        BG
+[転校生]
+「……はじめまして」
+
+★話しかける
+-> *talk
+★様子を見る
+-> *watch
+
+*talk
+#好感度 + 10
+[主人公]
+「よろしくね！」
+[転校生]
+「あ、ありがとう……」
+goto *end
+
+*watch
+#好感度 - 5
+[主人公]
+「（無言で見つめる）」
+[転校生]
+「（怯えている……）」
+goto *end
+
+*end
+// パラメータ確認用
+現在の好感度はどうかな？
+`;
+
+        function App() {
+            // エディタ状態
+            const [rawText, setRawText] = useState(DEFAULT_SCENARIO);
+            const [parsedLines, setParsedLines] = useState([]);
+            const [labelMap, setLabelMap] = useState({});
+
+            // 実行状態
+            const [isPlaying, setIsPlaying] = useState(false);
+            const [currentLineIndex, setCurrentLineIndex] = useState(0);
+            const [variables, setVariables] = useState({});
+            const [history, setHistory] = useState([]);
+            const [displayState, setDisplayState] = useState({
+                name: "",
+                text: "",
+                bg: "bg-gray-800",
+                choices: []
+            });
+
+            // Mobile Panel State: 'none', 'editor', 'debug'
+            const [mobilePanel, setMobilePanel] = useState('none');
+
+            // 解析処理
+            useEffect(() => {
+                const lines = rawText.replace(/\r\n/g, "\n").split("\n");
+                const map = {};
+                lines.forEach((line, index) => {
+                    if (line.trim().startsWith("*") || line.trim().startsWith("＊")) {
+                        const label = line.replace("＊", "*").trim();
+                        map[label] = index;
+                    }
+                });
+                setParsedLines(lines);
+                setLabelMap(map);
+            }, [rawText]);
+
+            // リセット
+            const resetGame = () => {
+                setIsPlaying(true);
+                setCurrentLineIndex(0);
+                setVariables({});
+                setHistory([]);
+                setDisplayState({
+                    name: "",
+                    text: "（開始）",
+                    bg: "bg-gray-800",
+                    choices: []
+                });
+                processNextLine(0, {}, []);
+                setMobilePanel('none');
+            };
+
+            // 次の行へ進む処理
+            const processNextLine = (index, currentVars, currentHistory) => {
+                if (index >= parsedLines.length) {
+                    setDisplayState(prev => ({ ...prev, text: "（シナリオ終了）", choices: [] }));
+                    return;
+                }
+
+                const line = parsedLines[index].trim();
+                let nextIndex = index + 1;
+                let newVars = { ...currentVars };
+                let newHistory = [...currentHistory];
+
+                if (!line || line.startsWith("//") || line.startsWith("*") || line.startsWith("＊") || index === 0) {
+                    processNextLine(nextIndex, newVars, newHistory);
+                    return;
+                }
+
+                if (line.startsWith("#") || line.startsWith("＃")) {
+                    const parts = line.substring(1).trim().split(/\s+/);
+                    if (parts.length >= 3) {
+                        const key = parts[0];
+                        const op = parts[1];
+                        const val = parseInt(parts[2], 10);
+
+                        if (!newVars[key]) newVars[key] = 0;
+
+                        let prevVal = newVars[key];
+                        if (op === "+" || op === "＋") newVars[key] += val;
+                        else if (op === "-" || op === "－") newVars[key] -= val;
+                        else if (op === "=" || op === "＝") newVars[key] = val;
+
+                        newHistory.push({
+                            type: 'var',
+                            text: `${key}: ${prevVal} -> ${newVars[key]} (${line})`
+                        });
+                    }
+                    setVariables(newVars);
+                    setHistory(newHistory);
+                    processNextLine(nextIndex, newVars, newHistory);
+                    return;
+                }
+
+                if (line.startsWith("○") || line.startsWith("@") || line.startsWith("＠")) {
+                    const bgName = line.substring(1).trim();
+                    newHistory.push({ type: 'sys', text: `背景変更: ${bgName}` });
+                    setHistory(newHistory);
+                    setDisplayState(prev => ({ ...prev, bg: "bg-blue-900" }));
+                    processNextLine(nextIndex, newVars, newHistory);
+                    return;
+                }
+
+                if (line.startsWith("♪")) {
+                    newHistory.push({ type: 'sys', text: `サウンド: ${line.substring(1).trim()}` });
+                    setHistory(newHistory);
+                    processNextLine(nextIndex, newVars, newHistory);
+                    return;
+                }
+
+                if (line.startsWith("[") && line.endsWith("]")) {
+                    const name = line.substring(1, line.length - 1);
+                    setDisplayState(prev => ({ ...prev, name: name }));
+                    processNextLine(nextIndex, newVars, newHistory);
+                    return;
+                }
+
+                if (line.toLowerCase().startsWith("goto")) {
+                    const target = line.substring(4).trim();
+                    const targetKey = target.startsWith("*") ? target : "*" + target;
+                    if (labelMap[targetKey] !== undefined) {
+                        newHistory.push({ type: 'jump', text: `JUMP -> ${targetKey}` });
+                        setHistory(newHistory);
+                        processNextLine(labelMap[targetKey] + 1, newVars, newHistory);
+                    } else {
+                        newHistory.push({ type: 'err', text: `ERROR: Label not found ${targetKey}` });
+                        setHistory(newHistory);
+                    }
+                    return;
+                }
+
+                if (line.startsWith("★") || line.startsWith("☆")) {
+                    const choices = [];
+                    let checkIdx = index;
+                    while (checkIdx < parsedLines.length) {
+                        const l = parsedLines[checkIdx].trim();
+                        if (!l) { checkIdx++; continue; }
+
+                        if (l.startsWith("★") || l.startsWith("☆")) {
+                            const choiceText = l.substring(1).trim();
+                            let nextL = "";
+                            let jumpTarget = "";
+                            if (checkIdx + 1 < parsedLines.length) {
+                                nextL = parsedLines[checkIdx + 1].trim();
+                                if (nextL.startsWith("→") || nextL.startsWith("->")) {
+                                    jumpTarget = nextL.replace(/^→|->/, "").trim();
+                                    if (!jumpTarget.startsWith("*")) jumpTarget = "*" + jumpTarget;
+                                    choices.push({ text: choiceText, target: jumpTarget });
+                                    checkIdx += 2;
+                                } else {
+                                    checkIdx++;
+                                }
+                            } else {
+                                break;
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+
+                    setDisplayState(prev => ({ ...prev, choices: choices }));
+                    setCurrentLineIndex(checkIdx);
+                    return;
+                }
+
+                let displayText = line;
+                let displayName = displayState.name;
+
+                const match = line.match(/^([^「『]*)[「『](.+)[」』]$/);
+                if (match) {
+                    const n = match[1].trim();
+                    if (n) displayName = n;
+                    displayText = match[2];
+                } else if (line.startsWith("（") || line.startsWith("(")) {
+                    displayName = "";
+                    displayText = line;
+                } else {
+                    displayName = "";
+                }
+
+                setDisplayState(prev => ({
+                    ...prev,
+                    name: displayName,
+                    text: displayText,
+                    choices: []
+                }));
+                setCurrentLineIndex(nextIndex);
+            };
+
+            const handleNext = () => {
+                if (displayState.choices.length > 0) return;
+                processNextLine(currentLineIndex, variables, history);
+            };
+
+            const handleChoice = (targetLabel) => {
+                const targetKey = targetLabel.replace("＊", "*");
+                if (labelMap[targetKey] !== undefined) {
+                    const newHistory = [...history, { type: 'choice', text: `選択: ${targetLabel}` }];
+                    setHistory(newHistory);
+                    processNextLine(labelMap[targetKey] + 1, variables, newHistory);
+                } else {
+                    alert(`ラベルが見つかりません: ${targetLabel}`);
+                }
+            };
+
+            const togglePanel = (panel) => {
+                setMobilePanel(prev => prev === panel ? 'none' : panel);
+            };
+
+            // Mobile slide style
+            const getMobilePanelStyle = (panelType) => {
+                // On Desktop (md+), always visible with no transform
+                // On Mobile, slide in/out based on state
+                const isActive = mobilePanel === panelType;
+                return {
+                    transform: isActive ? 'translateX(0)' : (panelType === 'editor' ? 'translateX(100%)' : 'translateX(-100%)'),
+                    transition: 'transform 0.3s ease-in-out'
+                };
+            };
+
+            return (
+                <div className="flex h-full flex-col md:flex-row relative overflow-hidden">
+
+                    {/* Mobile Navigation Buttons - Only show on mobile */}
+                    <div className="md:hidden fixed bottom-4 left-4 right-4 z-50 flex justify-between pointer-events-none">
+                        <button
+                            onClick={() => togglePanel('debug')}
+                            className={`pointer-events-auto w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-white text-xl transition ${mobilePanel === 'debug' ? 'bg-orange-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+                        >
+                            <i className="fas fa-bug"></i>
+                        </button>
+                        <button
+                            onClick={() => togglePanel('editor')}
+                            className={`pointer-events-auto w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-white text-xl transition ${mobilePanel === 'editor' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+                        >
+                            <i className="fas fa-edit"></i>
+                        </button>
                     </div>
 
-                    <!-- Message Window -->
+                    {/* 左側：エディタ - Desktop: normal flow, Mobile: overlay */}
                     <div
-                        class="relative z-10 mx-4 mb-4 bg-black bg-opacity-80 border border-gray-600 rounded-md p-4 min-h-[120px] text-white font-sans shadow-lg">
-                        <!-- Name Label -->
-                        <div id="nameLabel"
-                            class="absolute -top-3 left-4 bg-yellow-600 text-white text-xs font-bold px-3 py-1 rounded shadow hidden">
+                        className="hidden md:flex md:w-1/3 flex-col border-r border-gray-300 bg-white"
+                    >
+                        <div className="p-4 bg-gray-200 font-bold flex justify-between items-center">
+                            <span>シナリオ入力</span>
+                            <button
+                                onClick={resetGame}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded text-sm"
+                            >
+                                <i className="fas fa-play mr-2"></i>再生
+                            </button>
+                        </div>
+                        <textarea
+                            className="flex-1 p-4 font-mono text-sm resize-none focus:outline-none"
+                            value={rawText}
+                            onChange={(e) => setRawText(e.target.value)}
+                            spellCheck="false"
+                        />
+                    </div>
+
+                    {/* Mobile Editor Panel (Overlay) */}
+                    <div
+                        className="md:hidden fixed inset-0 z-40 flex flex-col bg-white"
+                        style={getMobilePanelStyle('editor')}
+                    >
+                        <div className="p-4 bg-gray-200 font-bold flex justify-between items-center">
+                            <span>シナリオ入力</span>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={resetGame}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded text-sm"
+                                >
+                                    <i className="fas fa-play mr-2"></i>再生
+                                </button>
+                                <button
+                                    onClick={() => setMobilePanel('none')}
+                                    className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm"
+                                >
+                                    <i className="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <textarea
+                            className="flex-1 p-4 font-mono text-sm resize-none focus:outline-none"
+                            value={rawText}
+                            onChange={(e) => setRawText(e.target.value)}
+                            spellCheck="false"
+                        />
+                    </div>
+
+                    {/* 中央：プレビュー画面 - Always visible */}
+                    <div className="flex-1 md:w-1/3 bg-gray-900 relative flex flex-col items-center justify-center p-4">
+                        <div className="w-full max-w-md aspect-[9/16] md:aspect-[3/4] bg-gray-800 relative rounded-lg shadow-2xl overflow-hidden border border-gray-700 flex flex-col">
+                            <div className={`absolute inset-0 ${displayState.bg} opacity-50 transition-colors duration-500`}></div>
+
+                            <div className="relative z-10 flex-1 flex flex-col justify-end pb-4 cursor-pointer" onClick={handleNext}>
+
+                                {displayState.choices.length > 0 && (
+                                    <div className="absolute inset-0 flex flex-col justify-center items-center bg-black/50 space-y-2 p-4">
+                                        {displayState.choices.map((c, i) => (
+                                            <button
+                                                key={i}
+                                                onClick={(e) => { e.stopPropagation(); handleChoice(c.target); }}
+                                                className="w-full bg-white text-gray-900 py-3 px-6 rounded shadow hover:bg-yellow-100 transition font-bold"
+                                            >
+                                                {c.text}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <div className="mx-2 mb-2 bg-black/80 text-white p-4 rounded min-h-[120px] border border-gray-600">
+                                    {displayState.name && (
+                                        <div className="font-bold text-yellow-400 mb-1 text-lg">{displayState.name}</div>
+                                    )}
+                                    <div className="text-md leading-relaxed whitespace-pre-wrap">{displayState.text}</div>
+                                    {displayState.choices.length === 0 && (
+                                        <div className="text-right text-xs text-gray-400 mt-2 animate-pulse">▼ Click to Next</div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 右側：デバッグ情報 - Desktop: normal flow */}
+                    <div className="hidden md:flex md:w-1/3 bg-gray-50 flex-col border-l border-gray-300">
+                        <div className="p-4 bg-gray-200 font-bold border-b border-gray-300">
+                            <i className="fas fa-bug mr-2"></i>デバッグ情報
                         </div>
 
-                        <!-- Main Text -->
-                        <div id="messageText" class="text-lg leading-relaxed tracking-wide">
-                            <span class="text-gray-400 text-sm animate-pulse">Waiting for start...</span>
+                        <div className="p-4 border-b border-gray-300 bg-white">
+                            <h3 className="text-sm font-bold text-gray-500 mb-2 uppercase">Current Variables</h3>
+                            <div className="grid grid-cols-2 gap-2">
+                                {Object.keys(variables).length === 0 ? (
+                                    <div className="text-gray-400 text-sm italic col-span-2">変数はまだありません</div>
+                                ) : (
+                                    Object.entries(variables).map(([key, val]) => (
+                                        <div key={key} className="bg-blue-50 border border-blue-200 p-2 rounded flex justify-between items-center">
+                                            <span className="font-bold text-blue-800 text-sm">{key}</span>
+                                            <span className="bg-white px-2 py-0.5 rounded border text-blue-900 font-mono font-bold">{val}</span>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
                         </div>
 
-                        <!-- Next Cursor -->
-                        <div class="absolute bottom-2 right-2 animate-bounce text-yellow-400">
-                            <i data-lucide="chevron-down" class="w-5 h-5"></i>
+                        <div className="flex-1 overflow-y-auto p-4 bg-gray-50 font-mono text-xs">
+                            <h3 className="text-sm font-bold text-gray-500 mb-2 uppercase sticky top-0 bg-gray-50 pb-2">Execution Log</h3>
+                            <div className="space-y-1">
+                                {history.map((h, i) => (
+                                    <div key={i} className={`p-1 border-l-2 pl-2 ${h.type === 'var' ? 'border-green-500 text-green-700 bg-green-50' :
+                                        h.type === 'jump' ? 'border-purple-500 text-purple-700' :
+                                            h.type === 'choice' ? 'border-orange-500 text-orange-700 font-bold' :
+                                                h.type === 'err' ? 'border-red-500 text-red-700 bg-red-50' :
+                                                    'border-gray-300 text-gray-500'
+                                        }`}>
+                                        {h.text}
+                                    </div>
+                                ))}
+                                <div ref={(el) => el && el.scrollIntoView({ behavior: "smooth" })} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Mobile Debug Panel (Overlay) */}
+                    <div
+                        className="md:hidden fixed inset-0 z-40 flex flex-col bg-gray-50"
+                        style={getMobilePanelStyle('debug')}
+                    >
+                        <div className="p-4 bg-gray-200 font-bold border-b border-gray-300 flex justify-between items-center">
+                            <span><i className="fas fa-bug mr-2"></i>デバッグ情報</span>
+                            <button
+                                onClick={() => setMobilePanel('none')}
+                                className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm"
+                            >
+                                <i className="fas fa-times"></i>
+                            </button>
+                        </div>
+
+                        <div className="p-4 border-b border-gray-300 bg-white">
+                            <h3 className="text-sm font-bold text-gray-500 mb-2 uppercase">Current Variables</h3>
+                            <div className="grid grid-cols-2 gap-2">
+                                {Object.keys(variables).length === 0 ? (
+                                    <div className="text-gray-400 text-sm italic col-span-2">変数はまだありません</div>
+                                ) : (
+                                    Object.entries(variables).map(([key, val]) => (
+                                        <div key={key} className="bg-blue-50 border border-blue-200 p-2 rounded flex justify-between items-center">
+                                            <span className="font-bold text-blue-800 text-sm">{key}</span>
+                                            <span className="bg-white px-2 py-0.5 rounded border text-blue-900 font-mono font-bold">{val}</span>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-4 bg-gray-50 font-mono text-xs">
+                            <h3 className="text-sm font-bold text-gray-500 mb-2 uppercase sticky top-0 bg-gray-50 pb-2">Execution Log</h3>
+                            <div className="space-y-1">
+                                {history.map((h, i) => (
+                                    <div key={i} className={`p-1 border-l-2 pl-2 ${h.type === 'var' ? 'border-green-500 text-green-700 bg-green-50' :
+                                        h.type === 'jump' ? 'border-purple-500 text-purple-700' :
+                                            h.type === 'choice' ? 'border-orange-500 text-orange-700 font-bold' :
+                                                h.type === 'err' ? 'border-red-500 text-red-700 bg-red-50' :
+                                                    'border-gray-300 text-gray-500'
+                                        }`}>
+                                        {h.text}
+                                    </div>
+                                ))}
+                                <div ref={(el) => el && el.scrollIntoView({ behavior: "smooth" })} />
+                            </div>
                         </div>
                     </div>
                 </div>
+            );
+        }
 
-                <!-- Controls -->
-                <div class="card p-3 flex justify-center gap-2 shrink-0 bg-gray-800 border-gray-700">
-                    <button id="prevBtn"
-                        class="bg-gray-700 text-gray-300 px-4 py-2 rounded hover:bg-gray-600 transition flex items-center"
-                        disabled>
-                        <i data-lucide="skip-back" class="icon"></i>
-                    </button>
-                    <button id="nextBtn"
-                        class="bg-blue-600 text-white px-8 py-2 rounded shadow hover:bg-blue-500 transition font-bold flex items-center">
-                        Next <i data-lucide="step-forward" class="icon ml-1"></i>
-                    </button>
-                    <button id="autoBtn"
-                        class="bg-gray-700 text-gray-300 px-4 py-2 rounded hover:bg-gray-600 transition flex items-center">
-                        Auto <i data-lucide="play" class="icon ml-1"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Right: Debug / Variables -->
-            <div class="w-full md:w-1/3 flex flex-col card p-4 h-full bg-slate-50">
-                <h2 class="font-bold text-gray-700 mb-2 flex items-center">
-                    <i data-lucide="activity" class="icon mr-2"></i>変数・ステータス
-                </h2>
-
-                <div class="overflow-y-auto flex-grow border bg-white rounded">
-                    <table class="w-full text-sm">
-                        <thead class="bg-gray-100 text-gray-600 border-b">
-                            <tr>
-                                <th class="py-2 px-3 text-left">変数名</th>
-                                <th class="py-2 px-3 text-right">値</th>
-                            </tr>
-                        </thead>
-                        <tbody id="variableTableBody">
-                            <tr>
-                                <td colspan="2" class="text-center text-gray-400 py-4">変数なし</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="mt-4 border-t pt-2">
-                    <h3 class="font-bold text-gray-700 text-sm mb-1">システムログ</h3>
-                    <div id="systemLog"
-                        class="h-24 overflow-y-auto bg-gray-100 p-2 text-xs font-mono text-gray-600 rounded border">
-                        <div>System ready.</div>
-                    </div>
-                </div>
-            </div>
-
-        </main>
-    </div>
-
-    <script src="js/simulator.js"></script>
-    <script>
-        lucide.createIcons();
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 
