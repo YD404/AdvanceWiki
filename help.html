@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdvanceWiki Chart - ヘルプ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="bg-gray-50 text-gray-800 font-sans p-8">
+
+    <div class="max-w-3xl mx-auto bg-white shadow-lg rounded-xl overflow-hidden">
+
+        <!-- Header -->
+        <header class="bg-indigo-600 text-white p-6 flex justify-between items-center">
+            <h1 class="text-2xl font-bold flex items-center">
+                <i data-lucide="help-circle" class="w-8 h-8 mr-3"></i>
+                AdvanceWiki Chart マニュアル
+            </h1>
+            <a href="chart.html"
+                class="flex items-center bg-white/20 hover:bg-white/30 px-4 py-2 rounded transition-colors text-sm font-bold">
+                <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
+                チャートに戻る
+            </a>
+        </header>
+
+        <main class="p-8 space-y-10">
+
+            <!-- Section 1: Scenario Syntax -->
+            <section>
+                <h2 class="text-xl font-bold text-indigo-700 border-b-2 border-indigo-100 pb-2 mb-4 flex items-center">
+                    <i data-lucide="file-code" class="w-5 h-5 mr-2"></i>
+                    記述ルール (シナリオ構文)
+                </h2>
+                <div class="space-y-4 text-sm leading-relaxed">
+                    <div class="bg-gray-50 p-4 rounded border border-gray-200">
+                        <h3 class="font-bold text-gray-700 mb-2">シーンラベル</h3>
+                        <p class="mb-2"><code>*label_name</code> で始まると、そこが新しい「ノード」として分割されます。</p>
+                        <pre class="bg-gray-800 text-gray-100 p-2 rounded text-xs select-all">*scene_start
+主人公「ここから始まるのか」</pre>
+                    </div>
+
+                    <div class="bg-gray-50 p-4 rounded border border-gray-200">
+                        <h3 class="font-bold text-gray-700 mb-2">選択肢分岐</h3>
+                        <p class="mb-2"><code>★選択肢テキスト</code> の直後に <code>→*dest_label</code> を書くと、分岐線が引かれます。</p>
+                        <pre class="bg-gray-800 text-gray-100 p-2 rounded text-xs select-all">★戦う
+→*battle_start
+
+★逃げる
+→*run_away</pre>
+                    </div>
+
+                    <div class="bg-gray-50 p-4 rounded border border-gray-200">
+                        <h3 class="font-bold text-gray-700 mb-2">強制遷移 (goto)</h3>
+                        <p class="mb-2"><code>goto *dest_label</code> で、特定のラベルへ合流します。</p>
+                        <pre class="bg-gray-800 text-gray-100 p-2 rounded text-xs select-all">主人公「この話はおしまい。」
+
+goto *next_chapter</pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: Chart Features -->
+            <section>
+                <h2 class="text-xl font-bold text-indigo-700 border-b-2 border-indigo-100 pb-2 mb-4 flex items-center">
+                    <i data-lucide="mouse-pointer-2" class="w-5 h-5 mr-2"></i>
+                    チャート機能の使い方
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+
+                    <div class="card p-4">
+                        <div class="flex items-center font-bold text-indigo-600 mb-2">
+                            <i data-lucide="move" class="w-4 h-4 mr-2"></i> 移動・ズーム
+                        </div>
+                        <p>空白をドラッグして移動、マウスホイールで拡大縮小できます。<br>ズームは<strong>カーソルの位置</strong>を中心に動作します。</p>
+                    </div>
+
+                    <div class="card p-4">
+                        <div class="flex items-center font-bold text-indigo-600 mb-2">
+                            <i data-lucide="layers" class="w-4 h-4 mr-2"></i> 表示モード
+                        </div>
+                        <p>ヘッダーのボタンで切り替え可能。</p>
+                        <ul class="list-disc list-inside mt-1 ml-2 text-gray-600">
+                            <li><strong>Simple</strong>: 分岐テキストを隠して構造のみ表示</li>
+                            <li><strong>Detail</strong>: 全てのテキストを表示</li>
+                        </ul>
+                    </div>
+
+                    <div class="card p-4">
+                        <div class="flex items-center font-bold text-amber-500 mb-2">
+                            <i data-lucide="lightbulb" class="w-4 h-4 mr-2"></i> ハイライト
+                        </div>
+                        <p>ノードをクリックすると、そのノードに関連する<strong>遷移元・遷移先</strong>がオレンジ色に光ります。関係ない部分は薄くなります。</p>
+                    </div>
+
+                    <div class="card p-4">
+                        <div class="flex items-center font-bold text-red-500 mb-2">
+                            <i data-lucide="alert-triangle" class="w-4 h-4 mr-2"></i> エラー検出
+                        </div>
+                        <p>存在しないラベルへ <code>goto</code> している場合、赤い「!」マークのノードが表示され、<span
+                                class="text-red-500 font-bold animate-pulse">赤く点滅</span>して警告します。</p>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- Quick Start -->
+            <section class="bg-indigo-50 p-6 rounded-lg text-center">
+                <h3 class="font-bold text-indigo-800 mb-2">まずはサンプルで試そう！</h3>
+                <p class="text-sm text-indigo-600 mb-4">画面左上の「サンプル復元」ボタンを押すと、動作確認用のシナリオが入力されます。</p>
+                <a href="chart.html"
+                    class="inline-flex items-center px-6 py-2 bg-indigo-600 text-white font-bold rounded-full hover:bg-indigo-700 transition-colors shadow-lg">
+                    チャート画面へ戻る
+                </a>
+            </section>
+
+        </main>
+
+        <footer class="bg-gray-100 p-4 text-center text-xs text-gray-400 border-t border-gray-200 font-mono">
+            AdvanceWiki Chart System v1.0
+        </footer>
+
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>
