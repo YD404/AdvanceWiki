@@ -12,10 +12,17 @@ const statsPanel = document.getElementById('statsPanel');
 const legend = document.getElementById('legend');
 const searchContainer = document.getElementById('searchContainer');
 const searchInput = document.getElementById('searchInput');
+const searchNav = document.getElementById('searchNav');
+const searchCounter = document.getElementById('searchCounter');
+const searchPrev = document.getElementById('searchPrev');
+const searchNext = document.getElementById('searchNext');
+const searchClear = document.getElementById('searchClear');
 
 // State
 let rawData = [];
 let speakerColors = {};
+let searchMatches = []; // Array of card elements with matches
+let currentMatchIndex = -1;
 
 // Color Palette for speakers (using custom classes)
 const colorClasses = [
@@ -32,7 +39,33 @@ const colorClasses = [
 // Event Listeners
 csvInput.addEventListener('change', handleFileUpload);
 dropZoneInput.addEventListener('change', handleFileUpload);
-searchInput.addEventListener('input', (e) => renderTimeline(filterData(e.target.value)));
+searchInput.addEventListener('input', debounce(handleSearch, 300));
+searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        if (e.shiftKey) {
+            navigateSearch(-1);
+        } else {
+            navigateSearch(1);
+        }
+    }
+});
+searchPrev.addEventListener('click', () => navigateSearch(-1));
+searchNext.addEventListener('click', () => navigateSearch(1));
+searchClear.addEventListener('click', clearSearch);
+
+// Debounce helper
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
 
 // Drop Zone Events
 dropZone.addEventListener('click', () => dropZoneInput.click());
@@ -98,21 +131,16 @@ function timeToSeconds(timeStr) {
 }
 
 function parseCSV(csvText) {
-    // Simple CSV parser handling quotes
     const lines = csvText.trim().split(/\r\n|\n/);
     const headers = lines[0].split(',');
 
     rawData = [];
     const speakers = new Set();
 
-    // Expected: Speaker (File), Start Time, End Time, Text
-
     for (let i = 1; i < lines.length; i++) {
-        // Regex to handle quoted CSV fields
         const row = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
         if (!row) continue;
 
-        // Clean quotes
         const cleanRow = row.map(cell => cell.replace(/^"|"$/g, '').replace(/""/g, '"'));
 
         let speaker, start, end, text;
@@ -121,7 +149,6 @@ function parseCSV(csvText) {
             [speaker, start, end, ...textParts] = cleanRow;
             text = textParts.join(',');
         } else if (cleanRow.length === 3) {
-            // Old format: Speaker, Timestamp, Text
             [speaker, start, ...textParts] = cleanRow;
             end = "";
             text = textParts.join(',');
@@ -149,7 +176,6 @@ function parseCSV(csvText) {
     legend.classList.remove('hidden');
     searchContainer.classList.remove('hidden');
 
-    // Re-render Lucide icons for any new elements
     lucide.createIcons();
 }
 
@@ -167,11 +193,9 @@ function groupBySpeaker(data) {
 
     for (let i = 1; i < data.length; i++) {
         if (data[i].speaker === currentGroup.speaker) {
-            // Same speaker, add to current group
             currentGroup.texts.push(data[i].text);
             currentGroup.end = data[i].end || currentGroup.end;
         } else {
-            // Different speaker, push current group and start new one
             grouped.push({
                 speaker: currentGroup.speaker,
                 start: currentGroup.start,
@@ -187,7 +211,6 @@ function groupBySpeaker(data) {
         }
     }
 
-    // Push the last group
     grouped.push({
         speaker: currentGroup.speaker,
         start: currentGroup.start,
@@ -204,7 +227,6 @@ function assignColors(speakers) {
         speakerColors[speaker] = colorClasses[index % colorClasses.length];
     });
 
-    // Render Legend
     legend.innerHTML = '';
     speakers.forEach(speaker => {
         const badge = document.createElement('div');
@@ -214,12 +236,11 @@ function assignColors(speakers) {
         legend.appendChild(badge);
     });
 
-    // Reset button
     const resetBtn = document.createElement('div');
     resetBtn.className = "tag tag-gray cursor-pointer hover:bg-gray-200 transition border border-gray-300";
     resetBtn.textContent = "Show All";
     resetBtn.onclick = () => {
-        searchInput.value = '';
+        clearSearch();
         renderTimeline(rawData);
     };
     legend.appendChild(resetBtn);
@@ -227,16 +248,8 @@ function assignColors(speakers) {
 
 function filterBySpeaker(speaker) {
     const filtered = rawData.filter(item => item.speaker === speaker);
+    clearSearch();
     renderTimeline(filtered);
-}
-
-function filterData(query) {
-    if (!query) return rawData;
-    const lowerQuery = query.toLowerCase();
-    return rawData.filter(item =>
-        item.text.toLowerCase().includes(lowerQuery) ||
-        item.speaker.toLowerCase().includes(lowerQuery)
-    );
 }
 
 function updateStats() {
@@ -248,38 +261,34 @@ function updateStats() {
 }
 
 function renderTimeline(data) {
-    // Keep the line
     timeline.innerHTML = '<div class="timeline-line"></div>';
+    searchMatches = [];
+    currentMatchIndex = -1;
 
     if (data.length === 0) {
         timeline.innerHTML += '<div class="text-center text-gray-500 py-4 ml-12">No results found</div>';
         return;
     }
 
-    // Group consecutive entries by same speaker
     const groupedData = groupBySpeaker(data);
 
     groupedData.forEach((item, index) => {
         const colorClass = speakerColors[item.speaker] || colorClasses[colorClasses.length - 1];
 
-        // Item Container
         const container = document.createElement('div');
         container.className = "relative pl-12 sm:pl-16 py-1 group";
+        container.dataset.index = index;
 
-        // Timestamp (Left)
         const timeLabel = document.createElement('div');
         timeLabel.className = "absolute left-0 top-3 text-xs font-mono text-gray-400 w-10 text-right group-hover:text-blue-500 transition-colors";
         timeLabel.innerText = item.start;
 
-        // Dot on line
         const dot = document.createElement('div');
         dot.className = "absolute left-[20px] top-[14px] w-2.5 h-2.5 rounded-full border-2 border-white bg-gray-400 z-10 timeline-dot";
 
-        // Content Card
         const card = document.createElement('div');
         card.className = `p-3 sm:p-4 rounded-lg border shadow-sm timeline-card ${colorClass}`;
 
-        // Header (Speaker + End Time)
         const header = document.createElement('div');
         header.className = "flex justify-between items-center mb-1";
 
@@ -294,12 +303,10 @@ function renderTimeline(data) {
         header.appendChild(speakerName);
         header.appendChild(duration);
 
-        // Text Body
         const bodyText = document.createElement('p');
-        bodyText.className = "text-sm sm:text-base leading-relaxed whitespace-pre-wrap";
+        bodyText.className = "text-sm sm:text-base leading-relaxed whitespace-pre-wrap timeline-text";
         bodyText.innerText = item.text;
 
-        // Assemble
         card.appendChild(header);
         card.appendChild(bodyText);
 
@@ -309,4 +316,135 @@ function renderTimeline(data) {
 
         timeline.appendChild(container);
     });
+}
+
+// Search functions
+function handleSearch() {
+    const query = searchInput.value.trim();
+
+    if (!query) {
+        clearHighlights();
+        searchNav.classList.add('hidden');
+        return;
+    }
+
+    searchNav.classList.remove('hidden');
+    highlightMatches(query);
+}
+
+function highlightMatches(query) {
+    clearHighlights();
+    searchMatches = [];
+    currentMatchIndex = -1;
+
+    const lowerQuery = query.toLowerCase();
+    const cards = timeline.querySelectorAll('.timeline-card');
+
+    cards.forEach((card, cardIndex) => {
+        const textEl = card.querySelector('.timeline-text');
+        if (!textEl) return;
+
+        const originalText = textEl.innerText;
+        const lowerText = originalText.toLowerCase();
+
+        if (lowerText.includes(lowerQuery)) {
+            // Mark this card as having a match
+            card.classList.add('has-match');
+            searchMatches.push({ card, textEl, originalText });
+
+            // Highlight the text
+            const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+            textEl.innerHTML = originalText.replace(regex, '<mark class="search-highlight">$1</mark>');
+        }
+    });
+
+    updateSearchCounter();
+
+    // Navigate to first match
+    if (searchMatches.length > 0) {
+        navigateSearch(0, true);
+    }
+}
+
+function escapeRegex(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function clearHighlights() {
+    const cards = timeline.querySelectorAll('.timeline-card');
+    cards.forEach(card => {
+        card.classList.remove('has-match', 'current-match');
+        const textEl = card.querySelector('.timeline-text');
+        if (textEl && searchMatches.length > 0) {
+            // Restore original text
+            const match = searchMatches.find(m => m.card === card);
+            if (match) {
+                textEl.innerText = match.originalText;
+            }
+        }
+    });
+}
+
+function navigateSearch(direction, absolute = false) {
+    if (searchMatches.length === 0) return;
+
+    // Remove current highlight
+    if (currentMatchIndex >= 0 && searchMatches[currentMatchIndex]) {
+        searchMatches[currentMatchIndex].card.classList.remove('current-match');
+        updateHighlightClass(currentMatchIndex, false);
+    }
+
+    // Calculate new index
+    if (absolute) {
+        currentMatchIndex = direction;
+    } else {
+        currentMatchIndex += direction;
+        if (currentMatchIndex >= searchMatches.length) currentMatchIndex = 0;
+        if (currentMatchIndex < 0) currentMatchIndex = searchMatches.length - 1;
+    }
+
+    // Add current highlight
+    const match = searchMatches[currentMatchIndex];
+    match.card.classList.add('current-match');
+    updateHighlightClass(currentMatchIndex, true);
+
+    // Scroll into view
+    match.card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    updateSearchCounter();
+}
+
+function updateHighlightClass(index, isCurrent) {
+    const match = searchMatches[index];
+    if (!match) return;
+
+    const marks = match.textEl.querySelectorAll('mark');
+    marks.forEach(mark => {
+        if (isCurrent) {
+            mark.classList.remove('search-highlight');
+            mark.classList.add('search-highlight-current');
+        } else {
+            mark.classList.remove('search-highlight-current');
+            mark.classList.add('search-highlight');
+        }
+    });
+}
+
+function updateSearchCounter() {
+    if (searchMatches.length === 0) {
+        searchCounter.textContent = '0/0';
+    } else {
+        searchCounter.textContent = `${currentMatchIndex + 1}/${searchMatches.length}`;
+    }
+}
+
+function clearSearch() {
+    searchInput.value = '';
+    clearHighlights();
+    searchMatches = [];
+    currentMatchIndex = -1;
+    searchNav.classList.add('hidden');
+
+    // Re-render to restore original text
+    renderTimeline(rawData);
 }

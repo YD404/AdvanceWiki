@@ -102,3 +102,27 @@
 .drop-zone.hidden {
     display: none;
 }
+
+/* Search Highlight */
+.search-highlight {
+    background-color: #fef08a;
+    color: #854d0e;
+    padding: 0 2px;
+    border-radius: 2px;
+}
+
+.search-highlight-current {
+    background-color: #f97316;
+    color: white;
+    padding: 0 2px;
+    border-radius: 2px;
+}
+
+/* Timeline card with match */
+.timeline-card.has-match {
+    box-shadow: 0 0 0 2px #fbbf24;
+}
+
+.timeline-card.current-match {
+    box-shadow: 0 0 0 3px #f97316;
+}

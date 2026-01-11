@@ -30,6 +30,28 @@
                 " />
             </div>
         </div>
+        <!-- Search Bar (sticky with header) -->
+        <div id="searchContainer" class="hidden border-t border-gray-100 bg-gray-50">
+            <div class="max-w-4xl mx-auto px-4 py-2 flex items-center gap-2">
+                <div class="relative flex-1">
+                    <input type="text" id="searchInput" placeholder="Search text..."
+                        class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                    <i data-lucide="search" class="absolute left-3 top-2 w-5 h-5 text-gray-400"></i>
+                </div>
+                <div id="searchNav" class="hidden flex items-center gap-1">
+                    <span id="searchCounter" class="text-sm text-gray-500 px-2 whitespace-nowrap">0/0</span>
+                    <button id="searchPrev" class="p-1.5 rounded hover:bg-gray-200 transition" title="前の結果">
+                        <i data-lucide="chevron-up" class="w-4 h-4 text-gray-600"></i>
+                    </button>
+                    <button id="searchNext" class="p-1.5 rounded hover:bg-gray-200 transition" title="次の結果">
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-600"></i>
+                    </button>
+                    <button id="searchClear" class="p-1.5 rounded hover:bg-gray-200 transition" title="クリア">
+                        <i data-lucide="x" class="w-4 h-4 text-gray-600"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
     </header>
 
     <!-- Main Content -->
@@ -61,13 +83,6 @@
 
         <!-- Legend -->
         <div id="legend" class="hidden flex flex-wrap gap-2 mb-6"></div>
-
-        <!-- Search -->
-        <div id="searchContainer" class="hidden mb-6 relative">
-            <input type="text" id="searchInput" placeholder="Search text..."
-                class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 outline-none">
-            <i data-lucide="search" class="absolute left-3 top-2.5 w-5 h-5 text-gray-400"></i>
-        </div>
 
         <!-- Timeline Container -->
         <div id="timeline" class="relative space-y-6 hidden pb-20">
