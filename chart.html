@@ -42,13 +42,13 @@
       cursor: grabbing;
     }
 
-    @keyframes pulse {
+    @keyframes pulse-error {
       0% {
         box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
       }
 
       70% {
-        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+        box-shadow: 0 0 0 15px rgba(239, 68, 68, 0);
       }
 
       100% {
@@ -56,9 +56,32 @@
       }
     }
 
+    @keyframes pulse-highlight {
+      0% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6);
+      }
+
+      70% {
+        box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+      }
+    }
+
     .highlight-error>rect,
-    .highlight-error>polygon {
-      animation: pulse 2s infinite;
+    .highlight-error>polygon,
+    .highlight-error>circle {
+      animation: pulse-error 2s infinite;
+      fill: #fee2e2 !important;
+      stroke: #b91c1c !important;
+    }
+
+    .highlight>rect,
+    .highlight>polygon,
+    .highlight>circle {
+      animation: pulse-highlight 2s infinite;
     }
   </style>
 </head>
@@ -89,6 +112,11 @@
     </div>
 
     <div class="flex gap-2">
+      <a href="help.html"
+        class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded hover:bg-amber-100 transition-colors">
+        <i data-lucide="help-circle" class="w-4 h-4"></i>
+        <span>使い方</span>
+      </a>
       <a href="index.html"
         class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors">
         <i data-lucide="arrow-left" class="w-4 h-4"></i>
@@ -170,21 +198,17 @@
 
     mermaid.initialize({
       startOnLoad: false,
-      flowchart: {
-        useMaxWidth: false,
-        htmlLabels: true,
-        curve: 'monotoneY',
-        nodeSpacing: 50,
-        rankSpacing: 50
-      },
+      flowchart: { htmlLabels: true, curve: 'monotoneY' },
       theme: 'base',
       themeVariables: {
-        primaryColor: '#eff6ff', // blue-50
-        primaryTextColor: '#1e40af', // blue-800
-        primaryBorderColor: '#60a5fa', // blue-400
-        lineColor: '#94a3b8', // slate-400
-        secondaryColor: '#fef3c7', // amber-100
-        tertiaryColor: '#fff'
+        primaryColor: '#e0e7ff', // indigo-100
+        primaryTextColor: '#3730a3', // indigo-800
+        primaryBorderColor: '#818cf8', // indigo-400
+        lineColor: '#64748b', // slate-500
+        secondaryColor: '#f1f5f9', // slate-100
+        tertiaryColor: '#fff',
+        clusterBkg: '#f8fafc',
+        edgeLabelBackground: '#ffffff'
       }
     });
 
