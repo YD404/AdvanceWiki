@@ -1,0 +1,104 @@
+/* Transcript Timeline Viewer Styles */
+
+.timeline-line {
+    position: absolute;
+    left: 24px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: #e5e7eb;
+    z-index: 0;
+}
+
+/* Speaker color variants */
+.speaker-blue {
+    background-color: #dbeafe;
+    color: #1e40af;
+    border-color: #bfdbfe;
+}
+
+.speaker-green {
+    background-color: #d1fae5;
+    color: #065f46;
+    border-color: #a7f3d0;
+}
+
+.speaker-purple {
+    background-color: #ede9fe;
+    color: #5b21b6;
+    border-color: #ddd6fe;
+}
+
+.speaker-orange {
+    background-color: #ffedd5;
+    color: #9a3412;
+    border-color: #fed7aa;
+}
+
+.speaker-pink {
+    background-color: #fce7f3;
+    color: #9d174d;
+    border-color: #fbcfe8;
+}
+
+.speaker-teal {
+    background-color: #ccfbf1;
+    color: #115e59;
+    border-color: #99f6e4;
+}
+
+.speaker-yellow {
+    background-color: #fef3c7;
+    color: #92400e;
+    border-color: #fde68a;
+}
+
+.speaker-gray {
+    background-color: #f3f4f6;
+    color: #374151;
+    border-color: #e5e7eb;
+}
+
+.timeline-card {
+    transition: all 0.3s ease;
+}
+
+.timeline-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+}
+
+.timeline-dot {
+    transition: all 0.2s ease;
+}
+
+.group:hover .timeline-dot {
+    background-color: #3b82f6;
+    transform: scale(1.25);
+}
+
+/* Drop Zone */
+.drop-zone {
+    border: 2px dashed #d1d5db;
+    border-radius: 1rem;
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: #fafafa;
+}
+
+.drop-zone:hover {
+    border-color: #3b82f6;
+    background-color: #eff6ff;
+}
+
+.drop-zone.drag-over {
+    border-color: #3b82f6;
+    background-color: #dbeafe;
+    transform: scale(1.02);
+}
+
+.drop-zone.hidden {
+    display: none;
+}
